@@ -1,14 +1,20 @@
+import businesslib.ImportProcessor;
 import databaselib.DBSettings;
+import databaselib.QueryRepository;
 import defines.ApplicationConfig;
+import defines.FieldTypeDefines;
 import loglib.Logger;
 import loglib.MessagesClass;
+import sun.awt.image.ImageWatched;
 import tableslib.TTable;
+import tableslib.ZMM_Table;
 import typeslib.tparameter;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map;
 
 public class MainClass {
@@ -18,38 +24,62 @@ public class MainClass {
     private static final String ERRORLOG = "errorlog";
     private static final String APPLOG = "applog";
 
+
     private static Map<String, tparameter> parameters;
     static{
         parameters=new HashMap<>();
-        parameters.put("sourcetable",new tparameter("",false));
-        parameters.put("destinationtable",new tparameter("",false));
+        parameters.put("sourcetable",new tparameter("",true));
+        parameters.put("destinationtable",new tparameter("",true));
         parameters.put(APPLOG,new tparameter(APPLOGFILENAME,false));
         parameters.put(ERRORLOG,new tparameter(ERRORLOGFILENAME,false));
     }
 
 
     public static void main(String[] args) {
+        ImportProcessor processor=new ImportProcessor();
+        HashMap<String, FieldTypeDefines.FieldType> aliases;
+        HashMap<String, ImportProcessor.FieldStateType> changedRecords;
+        LinkedList<String> deletedRecords;
+
+        ZMM_Table tableRouter=new ZMM_Table(parameters.get("sourcetable").getValue(), parameters.get("sourcetable").getValue());
+
         if (args.length==0){
             MessagesClass.showAppParams();
         }
         else {
+
             if (!parseProgramParameters(args)) return;
             if (!initLogClass()) return;
             MessagesClass.putDateToLog();
             if (!ApplicationConfig.initApplicationValues()) return;
 
+
             if (dataBaseConnection()) {
                 TTable sourceTable = new TTable(parameters.get("sourcetable").getValue(), parameters.get("sourcetable").getValue());
-                try {
-                    sourceTable.getAliases();
 
-                    sourceTable.getExceptedRecords();
-                    sourceTable.detectAddedRecords();
-                    sourceTable.detectDeletedRecords();
+                try {
+                    //TODO aliases никуда  не передал
+                    aliases=processor.getAliases(sourceTable.getDestinationTable());
+
+                    String query=QueryRepository.getZMMDifferenceView();
+                    changedRecords=processor.getChangedRecords(query);
+
+                    query=QueryRepository.getZMMAddedLines();
+                    processor.detectAddedRecords(changedRecords,query);
+
+                    query=QueryRepository.getZMMDeletedLines();
+                    query=query.replace("@dataset@",processor.getDiffValuesStr(changedRecords));
+
+                    deletedRecords=processor.detectDeletedRecords(query,changedRecords);
 
                     MessagesClass.importProcessMessageBegin();
-                    sourceTable.changeRecords();
-                    sourceTable.delRecords();
+
+                    query=QueryRepository.getZMMImportDifRecords().replace("@range@",processor.getDiffValuesStr(changedRecords));
+
+                    processor.changeRecords(query,changedRecords, tableRouter);
+
+                    processor.delRecords(deletedRecords,tableRouter);
+
                     MessagesClass.importProcessMessageEnd();
                 } catch (SQLException e) {
                     e.printStackTrace();
