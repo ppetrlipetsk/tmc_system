@@ -198,7 +198,7 @@ public class DBEngine {
     }
 
     public interface ResultSetCallBackMethod {
-        void call(ResultSet resultSet);
+        void call(ResultSet resultSet) throws SQLException;
     }
 
 }

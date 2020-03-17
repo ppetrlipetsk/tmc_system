@@ -3,7 +3,7 @@
     <output-path>$PROJECT_DIR$/out/artifacts/tmc_system_jar</output-path>
     <root id="archive" name="tmc_system.jar">
       <element id="module-output" name="tmc_system" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/src/sqljdbc42.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/sqljdbc42.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>

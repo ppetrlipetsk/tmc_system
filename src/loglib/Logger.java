@@ -9,6 +9,9 @@ import java.util.LinkedList;
 import java.util.Map;
 
 public class Logger {
+    public static final String ERRORLOG= "ErrorLog";
+    public static final String APPLOG= "AppLog";
+
     private static HashMap<String,Logger> loggers;
     private static boolean exitWhenError;
 
