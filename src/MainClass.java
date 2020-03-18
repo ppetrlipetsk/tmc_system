@@ -41,8 +41,6 @@ public class MainClass {
         HashMap<String, ImportProcessor.FieldStateType> changedRecords;
         LinkedList<String> deletedRecords;
 
-        ZMM_Table tableRouter=new ZMM_Table(parameters.get("sourcetable").getValue(), parameters.get("sourcetable").getValue());
-
         if (args.length==0){
             MessagesClass.showAppParams();
         }
@@ -55,11 +53,13 @@ public class MainClass {
 
 
             if (dataBaseConnection()) {
-                TTable sourceTable = new TTable(parameters.get("sourcetable").getValue(), parameters.get("sourcetable").getValue());
+                ZMM_Table table=new ZMM_Table(parameters.get("sourcetable").getValue(), parameters.get("destinationtable").getValue());
+                //TTable sourceTable = new TTable(parameters.get("sourcetable").getValue(), parameters.get("destinationtable").getValue());
 
                 try {
                     //TODO aliases никуда  не передал
-                    aliases=processor.getAliases(sourceTable.getDestinationTable());
+                    aliases=processor.getAliases(table.getDestinationTable());
+                    table.setAliases(aliases);
 
                     String query=QueryRepository.getZMMDifferenceView();
                     changedRecords=processor.getChangedRecords(query);
@@ -76,9 +76,9 @@ public class MainClass {
 
                     query=QueryRepository.getZMMImportDifRecords().replace("@range@",processor.getDiffValuesStr(changedRecords));
 
-                    processor.changeRecords(query,changedRecords, tableRouter);
+                    processor.changeRecords(query,changedRecords, table);
 
-                    processor.delRecords(deletedRecords,tableRouter);
+                    processor.delRecords(deletedRecords,table);
 
                     MessagesClass.importProcessMessageEnd();
                 } catch (SQLException e) {

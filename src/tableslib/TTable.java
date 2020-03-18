@@ -18,13 +18,21 @@ import static tableslib.TableTools.detectFieldType;
 public class TTable {
     private final String sourceTable;
     private final String destinationTable;
-    private HashMap<String, ImportProcessor.FieldStateType> difLines;
-    private LinkedList<String> deletedLines;
+//    private HashMap<String, ImportProcessor.FieldStateType> difLines;
+//    private LinkedList<String> deletedLines;
     private HashMap<String, FieldTypeDefines.FieldType> aliases=new HashMap<>();
 
 
     public String getSourceTable() {
         return sourceTable;
+    }
+
+    public HashMap<String, FieldTypeDefines.FieldType> getAliases() {
+        return aliases;
+    }
+
+    public void setAliases(HashMap<String, FieldTypeDefines.FieldType> aliases) {
+        this.aliases = aliases;
     }
 
     public String getDestinationTable() {
@@ -34,8 +42,8 @@ public class TTable {
     public TTable(String sourceTable, String destinationTable) {
         this.sourceTable = sourceTable;
         this.destinationTable=destinationTable;
-        difLines=new HashMap<>();
-        deletedLines=new LinkedList<>();
+  //      difLines=new HashMap<>();
+//        deletedLines=new LinkedList<>();
     }
 
 
