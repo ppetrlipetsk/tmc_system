@@ -8,4 +8,5 @@ public interface ITableRouter {
     void insertRecord(ResultSet resultSet);
 
     boolean deleteLine(String[] keys);
+
 }

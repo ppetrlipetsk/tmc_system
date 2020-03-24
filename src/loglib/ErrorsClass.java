@@ -46,4 +46,9 @@ public class ErrorsClass {
         Logger.putLineToLogs(new String[] {Logger.APPLOG}, "Ошибка вставки записи таблицы.", true);
         Logger.putLineToLogs(new String[] {Logger.ERRORLOG}, "Ошибка вставки записи таблицы."+e.getMessage(), true);
     }
+
+    public static void tableClassNewInstanceError() {
+        Logger.putLineToLogs(new String[] {Logger.APPLOG}, "Ошибка создания экземпляра класса таблицы.", true);
+        Logger.putLineToLogs(new String[] {Logger.ERRORLOG}, "Ошибка создания экземпляра класса таблицы.", true);
+    }
 }

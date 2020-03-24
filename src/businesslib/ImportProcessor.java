@@ -33,8 +33,8 @@ public class ImportProcessor {
         return aliasesLoader.getAliases();
     }
 
-    public HashMap<String, FieldStateType> getChangedRecords(String query) {
-        //String query=QueryRepository.getZMMDifferenceView();
+    public HashMap<String, FieldStateType> getChangedRecords(TTable table) {
+        String query=table.getDifferenceViewQuery();
         HashMap<String, FieldStateType> changedRecords=null;
         DifferenceSelectCallBack differenceSelectCallBack=new DifferenceSelectCallBack();
         try {
@@ -50,8 +50,9 @@ public class ImportProcessor {
         return changedRecords;
     }
 
-    public void detectAddedRecords(HashMap<String,FieldStateType> changedRecords,String query) throws SQLException {
+    public void detectAddedRecords(HashMap<String,FieldStateType> changedRecords, TTable table) throws SQLException {
         //String query=QueryRepository.getZMMAddedLines();
+        String query=table.getAddedLinesQuery();
         try {
             AddedSelectCallBack addedSelectCallBack=new AddedSelectCallBack(changedRecords);
             DBEngine.resultExpression(query, addedSelectCallBack);
@@ -60,7 +61,9 @@ public class ImportProcessor {
         }
     }
 
-    public LinkedList<String> detectDeletedRecords(String query,HashMap<String,FieldStateType> changedRecords) throws SQLException {
+    public LinkedList<String> detectDeletedRecords(HashMap<String,FieldStateType> changedRecords, TTable table) throws SQLException {
+
+        String query=table.getDeletedRecordsQuery(getDiffValuesStr(changedRecords));
 
         LinkedList<String> deletedLines=null;
         try {
@@ -73,21 +76,23 @@ public class ImportProcessor {
         return deletedLines;
     }
 
-    public boolean changeRecords(String query, HashMap<String,FieldStateType> changedRecords, ITableRouter tableRouter) {
+    public boolean changeRecords(HashMap<String,FieldStateType> changedRecords, TTable table) {
         //Выбираем только те записи, которые новые или измененные в таблице импорта
+        String query=table.getImportDifferenceRecordsQuery(getDiffValuesStr(changedRecords));
+
         try {
-            DBEngine.resultExpression(query, new ImportRecords(changedRecords, tableRouter));
+            DBEngine.resultExpression(query, new ImportRecords(changedRecords, table));
         } catch (SQLException e) {
             ErrorsClass.changeRecordsError(e,query);
         }
         return false;
     }
 
-    public int delRecords(LinkedList<String> deletedRecords, ITableRouter tableRouter) {
+    public int delRecords(LinkedList<String> deletedRecords, TTable table) {
         int count=0;
         for(String idn:deletedRecords){
-            String[] keys=idn.split("_");
-            if (tableRouter.deleteLine(keys)) count++;
+            String[] keys=table.getKeys(idn);
+            if (table.deleteLine(keys)) count++;
         }
         MessagesClass.deletedRecordCountMessage(count);
         return count;
@@ -98,7 +103,7 @@ public class ImportProcessor {
      * Возвражает строку ключей, записей, попавших в выборку разницы таблицы импорта и действующей таблицы
      * @return
      */
-    public CharSequence getDiffValuesStr(HashMap<String, FieldStateType> changedRecords) {
+    public String getDiffValuesStr(HashMap<String, FieldStateType> changedRecords) {
         StringBuilder line=new StringBuilder();
         for (Map.Entry<String, FieldStateType> entry : changedRecords.entrySet()) {
             if (line.length()>0) line.append(",");

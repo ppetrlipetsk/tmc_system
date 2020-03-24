@@ -1,16 +1,16 @@
 import businesslib.ImportProcessor;
 import databaselib.DBSettings;
-import databaselib.QueryRepository;
 import defines.ApplicationConfig;
 import defines.FieldTypeDefines;
+import loglib.ErrorsClass;
 import loglib.Logger;
 import loglib.MessagesClass;
-import sun.awt.image.ImageWatched;
 import tableslib.TTable;
 import tableslib.ZMM_Table;
 import typeslib.tparameter;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -32,14 +32,17 @@ public class MainClass {
         parameters.put("destinationtable",new tparameter("",true));
         parameters.put(APPLOG,new tparameter(APPLOGFILENAME,false));
         parameters.put(ERRORLOG,new tparameter(ERRORLOGFILENAME,false));
+        parameters.put("tableclass",new tparameter("tableclass",true));
     }
 
 
     public static void main(String[] args) {
-        ImportProcessor processor=new ImportProcessor();
+        ImportProcessor importProcessor=new ImportProcessor();
         HashMap<String, FieldTypeDefines.FieldType> aliases;
         HashMap<String, ImportProcessor.FieldStateType> changedRecords;
         LinkedList<String> deletedRecords;
+        Class<tableslib.TTable> tableClass;
+        TTable table;
 
         if (args.length==0){
             MessagesClass.showAppParams();
@@ -47,40 +50,37 @@ public class MainClass {
         else {
 
             if (!parseProgramParameters(args)) return;
+
             if (!initLogClass()) return;
+
             MessagesClass.putDateToLog();
+
             if (!ApplicationConfig.initApplicationValues()) return;
 
+            table=createTableInstance();
 
-            if (dataBaseConnection()) {
-                ZMM_Table table=new ZMM_Table(parameters.get("sourcetable").getValue(), parameters.get("destinationtable").getValue());
-                //TTable sourceTable = new TTable(parameters.get("sourcetable").getValue(), parameters.get("destinationtable").getValue());
+            if ((table!=null &&dataBaseConnection())) {
 
                 try {
-                    //TODO aliases никуда  не передал
-                    aliases=processor.getAliases(table.getDestinationTable());
+
+                    aliases=importProcessor.getAliases(table.getDestinationTable());
+
                     table.setAliases(aliases);
 
-                    String query=QueryRepository.getZMMDifferenceView();
-                    changedRecords=processor.getChangedRecords(query);
+                    changedRecords=importProcessor.getChangedRecords(table);
 
-                    query=QueryRepository.getZMMAddedLines();
-                    processor.detectAddedRecords(changedRecords,query);
+                    importProcessor.detectAddedRecords(changedRecords,table);
 
-                    query=QueryRepository.getZMMDeletedLines();
-                    query=query.replace("@dataset@",processor.getDiffValuesStr(changedRecords));
-
-                    deletedRecords=processor.detectDeletedRecords(query,changedRecords);
+                    deletedRecords=importProcessor.detectDeletedRecords(changedRecords,table);
 
                     MessagesClass.importProcessMessageBegin();
 
-                    query=QueryRepository.getZMMImportDifRecords().replace("@range@",processor.getDiffValuesStr(changedRecords));
+                    importProcessor.changeRecords(changedRecords, table);
 
-                    processor.changeRecords(query,changedRecords, table);
-
-                    processor.delRecords(deletedRecords,table);
+                    importProcessor.delRecords(deletedRecords,table);
 
                     MessagesClass.importProcessMessageEnd();
+
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
@@ -88,6 +88,22 @@ public class MainClass {
             }
             loglib.Logger.closeAll();
         }
+    }
+
+    private static TTable createTableInstance() {
+        Class<TTable> tableClass;
+        TTable table=null;
+        String className=parameters.get("tableclass").getValue();
+        Class[] params={String.class};
+
+        try {
+            tableClass= (Class<TTable>) Class.forName("tableslib."+className);
+            table = (TTable) tableClass.getConstructor(params).newInstance(parameters.get("destinationtable").getValue());
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException e){
+            e.printStackTrace();
+            ErrorsClass.tableClassNewInstanceError();
+        }
+        return table;
     }
 
     private static boolean initLogClass() {
